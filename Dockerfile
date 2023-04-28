@@ -1,27 +1,22 @@
-# syntax=docker/dockerfile:1
-
-FROM golang:1.16-alpine as build
-
+FROM golang:1.20.3-alpine3.17 as builder
 
 WORKDIR /app
 
 COPY go.mod ./
 COPY go.sum ./
-
-RUN go mod download
-
 COPY *.go ./
 
-RUN go build -o main /app
+RUN go mod download
+RUN go build -o /app/floppa-bot
 
-FROM alpine:3.11.3
-COPY --from=build /app ./
+FROM alpine:3.17.3 as final
 
+WORKDIR /app
 
-ADD floppa ./floppa/
-ADD video ./video/
-ADD ids.json ./
+COPY --from=builder /app/floppa-bot /app/floppa-bot
 
-EXPOSE 8080
+COPY ./.env /app/
+ADD floppa /app/floppa/
+ADD video  /app/video/
 
-CMD ["./main"]
+CMD [ "/app/floppa-bot" ]

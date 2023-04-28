@@ -3,12 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-  
+
+	"context"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
-	"context"
 	"strconv"
 	"strings"
 	"time"
@@ -88,6 +88,22 @@ func main() {
 				}
 			case "floppinson":
 				go floppinson(bot)
+			case "floppik":
+				go func() {
+					s1 := rand.NewSource(time.Now().UnixNano())
+					rng := rand.New(s1)
+					picture := rng.Intn(32)
+
+					photoBytes, err := ioutil.ReadFile("floppa/" + strconv.Itoa(picture) + ".jpg")
+					if err != nil {
+						panic(err)
+					}
+					photoFileBytes := tgbotapi.FileBytes{
+						Name:  "Flopik",
+						Bytes: photoBytes,
+					}
+					_, err = bot.Send(tgbotapi.NewPhoto(update.FromChat().ID, photoFileBytes))
+				}()
 			case "earrape":
 				go func() {
 					file, err := ioutil.ReadFile(DATA_FILE)

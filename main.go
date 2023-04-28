@@ -3,23 +3,47 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+  
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"os"
+	"context"
 	"strconv"
 	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/joho/godotenv"
+	"github.com/procyon-projects/chrono"
 )
 
 func main() {
-	bot, err := tgbotapi.NewBotAPI("5187849216:AAE0mAjGV7wLf0ER-fp2jR5gD7oz8qzp8ek")
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error while loading env variables: %v", err)
+	}
+
+	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
 		log.Panic(err)
 	}
 
 	bot.Debug = true
+
+	taskScheduler := chrono.NewDefaultTaskScheduler()
+
+	task, err := taskScheduler.ScheduleWithCron(func(ctx context.Context) {
+		log.Println("Sending daily floppas...")
+		go floppinson(bot)
+	}, "0 0 9 * * *")
+
+	if err == nil {
+		log.Print("Task has been scheduled successfully.")
+	}
+
+	if task != nil {
+	}
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
@@ -64,30 +88,7 @@ func main() {
 					bot.Send(msg)
 				}
 			case "floppinson":
-				go func() {
-					file, err := ioutil.ReadFile("ids.json")
-					var arr []int64
-					json.Unmarshal(file, &arr)
-					for index := 0; index < len(arr); index++ {
-						s1 := rand.NewSource(time.Now().UnixNano())
-						rng := rand.New(s1)
-						picture := rng.Intn(32)
-
-						id := arr[index]
-						photoBytes, err := ioutil.ReadFile("floppa/" + strconv.Itoa(picture) + ".jpg")
-						if err != nil {
-							panic(err)
-						}
-						photoFileBytes := tgbotapi.FileBytes{
-							Name:  "Flopik",
-							Bytes: photoBytes,
-						}
-						_, err = bot.Send(tgbotapi.NewPhoto(int64(id), photoFileBytes))
-					}
-					if err != nil {
-						fmt.Println(err)
-					}
-				}()
+				go floppinson(bot)
 			case "earrape":
 				go func() {
 					file, err := ioutil.ReadFile("ids.json")
@@ -132,7 +133,6 @@ func main() {
 				}()
 			case "announce":
 				go func() {
-
 					message := strings.Replace(update.Message.Text, "/announce ", "", 644)
 
 					file, err := ioutil.ReadFile("ids.json")
@@ -169,4 +169,29 @@ func contains(s []int64, str int64) bool {
 	}
 
 	return false
+}
+
+func floppinson(bot *tgbotapi.BotAPI) {
+	file, err := ioutil.ReadFile("ids.json")
+	var arr []int64
+	json.Unmarshal(file, &arr)
+	for index := 0; index < len(arr); index++ {
+		s1 := rand.NewSource(time.Now().UnixNano())
+		rng := rand.New(s1)
+		picture := rng.Intn(32)
+
+		id := arr[index]
+		photoBytes, err := ioutil.ReadFile("floppa/" + strconv.Itoa(picture) + ".jpg")
+		if err != nil {
+			panic(err)
+		}
+		photoFileBytes := tgbotapi.FileBytes{
+			Name:  "Flopik",
+			Bytes: photoBytes,
+		}
+		_, err = bot.Send(tgbotapi.NewPhoto(int64(id), photoFileBytes))
+	}
+	if err != nil {
+		fmt.Println(err)
+	}
 }

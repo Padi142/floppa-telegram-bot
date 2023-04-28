@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  floppa-bot:
+    container_name: floppa-bot
+    build: .
+    volumes:
+      - ./ids.json:/app/ids.json
+    env_file:
+      - .env
+    expose:
+      - 8000

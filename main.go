@@ -18,6 +18,8 @@ import (
 	"github.com/procyon-projects/chrono"
 )
 
+const DATA_FILE = "./ids.json"
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -33,16 +35,13 @@ func main() {
 
 	taskScheduler := chrono.NewDefaultTaskScheduler()
 
-	task, err := taskScheduler.ScheduleWithCron(func(ctx context.Context) {
+	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
 		log.Println("Sending daily floppas...")
 		go floppinson(bot)
-	}, "0 0 9 * * *")
+	}, "0 0 9 * * *") // Every day at 9:00 AM
 
 	if err == nil {
-		log.Print("Task has been scheduled successfully.")
-	}
-
-	if task != nil {
+		log.Print("Daily floppas has been scheduled successfully.")
 	}
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
@@ -64,7 +63,7 @@ func main() {
 			switch update.Message.Command() {
 			case "subscribe":
 
-				file, err := ioutil.ReadFile("ids.json")
+				file, err := ioutil.ReadFile(DATA_FILE)
 				var arr []int64
 				json.Unmarshal(file, &arr)
 				id := update.Message.Chat.ID
@@ -78,7 +77,7 @@ func main() {
 
 					file, err = json.Marshal(arr)
 
-					err = ioutil.WriteFile("ids.json", file, 0644)
+					err = ioutil.WriteFile(DATA_FILE, file, 0644)
 					if err != nil {
 						fmt.Println(err)
 					}
@@ -91,7 +90,7 @@ func main() {
 				go floppinson(bot)
 			case "earrape":
 				go func() {
-					file, err := ioutil.ReadFile("ids.json")
+					file, err := ioutil.ReadFile(DATA_FILE)
 					var arr []int64
 					json.Unmarshal(file, &arr)
 					for index := 0; index < len(arr); index++ {
@@ -114,7 +113,7 @@ func main() {
 				}()
 			case "ids":
 				go func() {
-					file, err := ioutil.ReadFile("ids.json")
+					file, err := ioutil.ReadFile(DATA_FILE)
 					var arr []int
 					var IDs []string
 					json.Unmarshal(file, &arr)
@@ -135,7 +134,7 @@ func main() {
 				go func() {
 					message := strings.Replace(update.Message.Text, "/announce ", "", 644)
 
-					file, err := ioutil.ReadFile("ids.json")
+					file, err := ioutil.ReadFile(DATA_FILE)
 					var arr []int64
 					json.Unmarshal(file, &arr)
 					for index := 0; index < len(arr); index++ {
@@ -172,7 +171,7 @@ func contains(s []int64, str int64) bool {
 }
 
 func floppinson(bot *tgbotapi.BotAPI) {
-	file, err := ioutil.ReadFile("ids.json")
+	file, err := ioutil.ReadFile(DATA_FILE)
 	var arr []int64
 	json.Unmarshal(file, &arr)
 	for index := 0; index < len(arr); index++ {

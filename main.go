@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"context"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -115,7 +114,7 @@ func main() {
 					}
 
 					for _, id := range ids {
-						photoBytes, err := ioutil.ReadFile("video/earrape.mp4")
+						photoBytes, err := os.ReadFile("video/earrape.mp4")
 						if err != nil {
 							fmt.Printf("earrape: Failed to open video file: %s", err)
 						}

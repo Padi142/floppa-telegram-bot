@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"context"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -23,12 +22,12 @@ const DATA_FILE = "./ids.json"
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error while loading env variables: %v", err)
+		log.Fatalf("Error while loading env variables: %s", err)
 	}
 
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
-		log.Panic(err)
+		log.Fatalf("Error occured while creating Telegram bot: %s", err)
 	}
 
 	bot.Debug = true
@@ -37,12 +36,16 @@ func main() {
 
 	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
 		log.Println("Sending daily floppas...")
-		go floppinson(bot)
+		go func() {
+			if err = floppinson(bot); err != nil {
+				log.Printf("Failed to send daily floppas: %s", err)
+			}
+		}()
 	}, "0 0 9 * * *") // Every day at 9:00 AM
-
-	if err == nil {
-		log.Print("Daily floppas has been scheduled successfully.")
+	if err != nil {
+		log.Printf("Failed to schedule daily floppas: %s", err)
 	}
+	log.Print("Daily floppas were scheduled successfully.")
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
@@ -57,125 +60,159 @@ func main() {
 
 			if update.Message.Text == "flop" {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "FLOP FLOP!")
-
-				bot.Send(msg)
+				if _, err := bot.Send(msg); err != nil {
+					log.Printf("flop: Failed to send message: %s", err)
+				}
 			}
+
 			switch update.Message.Command() {
 			case "subscribe":
+				ids, err := getSubscriberIDs()
+				if err != nil {
+					log.Printf("subscribe: Failed to get subscriber ids: %s", err)
+				}
 
-				file, err := ioutil.ReadFile(DATA_FILE)
-				var arr []int64
-				json.Unmarshal(file, &arr)
 				id := update.Message.Chat.ID
-				if !contains(arr, id) {
+				if !contains(ids, id) {
 					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "SUBSCRIBED TO FLOPPA PHOTOS!")
-					bot.Send(msg)
-					msg = tgbotapi.NewMessage(update.Message.Chat.ID, "FLOP FLOP!")
-					bot.Send(msg)
-
-					arr = append(arr, id)
-
-					file, err = json.Marshal(arr)
-
-					err = ioutil.WriteFile(DATA_FILE, file, 0644)
-					if err != nil {
-						fmt.Println(err)
+					if _, err = bot.Send(msg); err != nil {
+						log.Printf("subscribe: Failed to send message: %s", err)
 					}
-					fmt.Println("saving id: " + strconv.Itoa(int(update.Message.Chat.ID)))
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, "FLOP FLOP!")
+					if _, err = bot.Send(msg); err != nil {
+						log.Printf("subscribe: Failed to send message: %s", err)
+					}
+
+					err = addNewSubscriber(id)
+					if err != nil {
+						log.Printf("subscribe: Failed to subscribe: %s", err)
+					}
 				} else {
 					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "You can only subscribe once")
-					bot.Send(msg)
+					if _, err = bot.Send(msg); err != nil {
+						log.Printf("subscribe: Failed to send message: %s", err)
+					}
 				}
 			case "floppinson":
-				go floppinson(bot)
+				go func() {
+					if err = floppinson(bot); err != nil {
+						log.Printf("Failed to send daily floppas: %s", err)
+					}
+				}()
 			case "floppik":
 				go func() {
-					s1 := rand.NewSource(time.Now().UnixNano())
-					rng := rand.New(s1)
-					picture := rng.Intn(32)
-
-					photoBytes, err := ioutil.ReadFile("floppa/" + strconv.Itoa(picture) + ".jpg")
+					err = flopik(bot, update.FromChat().ID)
 					if err != nil {
-						panic(err)
+						log.Printf("flopik: failed to send flopik: %s", err)
 					}
-					photoFileBytes := tgbotapi.FileBytes{
-						Name:  "Flopik",
-						Bytes: photoBytes,
-					}
-					_, err = bot.Send(tgbotapi.NewPhoto(update.FromChat().ID, photoFileBytes))
 				}()
 			case "earrape":
 				go func() {
-					file, err := ioutil.ReadFile(DATA_FILE)
-					var arr []int64
-					json.Unmarshal(file, &arr)
-					for index := 0; index < len(arr); index++ {
+					ids, err := getSubscriberIDs()
+					if err != nil {
+						log.Printf("earrape: Failed to get subscriber ids: %s", err)
+					}
 
-						id := arr[index]
-						photoBytes, err := ioutil.ReadFile("video/earrape.mp4")
+					for _, id := range ids {
+						photoBytes, err := os.ReadFile("video/earrape.mp4")
 						if err != nil {
-							panic(err)
+							fmt.Printf("earrape: Failed to open video file: %s", err)
 						}
 						photoFileBytes := tgbotapi.FileBytes{
 							Name:  "Flopik",
 							Bytes: photoBytes,
 						}
 						_, err = bot.Send(tgbotapi.NewVideo(int64(id), photoFileBytes))
-					}
-					if err != nil {
-						fmt.Println(err)
-
+						if err != nil {
+							fmt.Printf("earrape: Failed to send video: %s", err)
+						}
 					}
 				}()
 			case "ids":
 				go func() {
-					file, err := ioutil.ReadFile(DATA_FILE)
-					var arr []int
-					var IDs []string
-					json.Unmarshal(file, &arr)
-					for _, i := range arr {
-						IDs = append(IDs, strconv.Itoa(i))
-					}
-					idstring := ""
-					for _, id := range IDs {
-						idstring = idstring + "," + id
-					}
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, idstring)
-					bot.Send(msg)
+					ids, err := getSubscriberIDs()
 					if err != nil {
-						fmt.Println(err)
+						log.Printf("ids: Failed to get subscriber ids: %s", err)
+					}
+
+					var strarr []string
+					for _, id := range ids {
+						strarr = append(strarr, strconv.FormatInt(id, 10))
+					}
+					str := strings.Join(strarr, ",")
+
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, str)
+					if _, err = bot.Send(msg); err != nil {
+						log.Printf("ids: Failed to send message: %s", err)
 					}
 				}()
 			case "announce":
 				go func() {
 					message := strings.Replace(update.Message.Text, "/announce ", "", 644)
 
-					file, err := ioutil.ReadFile(DATA_FILE)
-					var arr []int64
-					json.Unmarshal(file, &arr)
-					for index := 0; index < len(arr); index++ {
-
-						msg := tgbotapi.NewMessage(arr[index], message)
-						bot.Send(msg)
-
-					}
+					ids, err := getSubscriberIDs()
 					if err != nil {
-						fmt.Println(err)
+						log.Printf("announce: Failed to get subscriber ids: %s", err)
+					}
+
+					for _, id := range ids {
+						msg := tgbotapi.NewMessage(id, message)
+						if _, err = bot.Send(msg); err != nil {
+							log.Printf("announce: Failed to send message: %s", err)
+						}
 					}
 				}()
 			case "flop":
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "FLOP FLOP!")
-				bot.Send(msg)
+				if _, err = bot.Send(msg); err != nil {
+					log.Printf("flop: Failed to send message: %s", err)
+				}
 			case "start":
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Type /subscribe to get daily floppas!")
-				bot.Send(msg)
+				if _, err = bot.Send(msg); err != nil {
+					log.Printf("start: Failed to send message: %s", err)
+				}
 			default:
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Co")
-				bot.Send(msg)
+				if _, err = bot.Send(msg); err != nil {
+					log.Printf("default: Failed to send message: %s", err)
+				}
 			}
 		}
 	}
 }
+
+func getSubscriberIDs() ([]int64, error) {
+	file, err := os.ReadFile(DATA_FILE)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []int64
+	if err = json.Unmarshal(file, &ids); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
+func addNewSubscriber(id int64) error {
+	ids, err := getSubscriberIDs()
+	if err != nil {
+		return err
+	}
+
+	ids = append(ids, id)
+	file, err := json.Marshal(ids)
+	if err != nil {
+		return err
+	}
+
+	log.Println("saving id: " + strconv.FormatInt(id, 10))
+
+	return os.WriteFile(DATA_FILE, file, 0644)
+}
+
 func contains(s []int64, str int64) bool {
 	for _, v := range s {
 		if v == str {
@@ -186,27 +223,44 @@ func contains(s []int64, str int64) bool {
 	return false
 }
 
-func floppinson(bot *tgbotapi.BotAPI) {
-	file, err := ioutil.ReadFile(DATA_FILE)
-	var arr []int64
-	json.Unmarshal(file, &arr)
-	for index := 0; index < len(arr); index++ {
-		s1 := rand.NewSource(time.Now().UnixNano())
-		rng := rand.New(s1)
-		picture := rng.Intn(32)
-
-		id := arr[index]
-		photoBytes, err := ioutil.ReadFile("floppa/" + strconv.Itoa(picture) + ".jpg")
-		if err != nil {
-			panic(err)
-		}
-		photoFileBytes := tgbotapi.FileBytes{
-			Name:  "Flopik",
-			Bytes: photoBytes,
-		}
-		_, err = bot.Send(tgbotapi.NewPhoto(int64(id), photoFileBytes))
-	}
+// floppinson sends a random floppa image to a list of users loaded from a JSON file
+func floppinson(bot *tgbotapi.BotAPI) error {
+	file, err := os.ReadFile(DATA_FILE)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
+
+	var arr []int64
+	err = json.Unmarshal(file, &arr)
+	if err != nil {
+		return err
+	}
+
+	// Iterates over every user in the list and sends them a random floppa image
+	for _, id := range arr {
+		err = flopik(bot, id)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func flopik(bot *tgbotapi.BotAPI, id int64) error {
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	pictureId := rng.Intn(32)
+
+	photoBytes, err := os.ReadFile(fmt.Sprintf("floppa/%d.jpg", pictureId))
+	if err != nil {
+		return err
+	}
+
+	photoFileBytes := tgbotapi.FileBytes{
+		Name:  "Flopik",
+		Bytes: photoBytes,
+	}
+
+	_, err = bot.Send(tgbotapi.NewPhoto(id, photoFileBytes))
+	return err
 }

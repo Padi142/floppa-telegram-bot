@@ -176,6 +176,7 @@ func main() {
 		}
 	}
 }
+
 func contains(s []int64, str int64) bool {
 	for _, v := range s {
 		if v == str {
@@ -186,27 +187,39 @@ func contains(s []int64, str int64) bool {
 	return false
 }
 
-func floppinson(bot *tgbotapi.BotAPI) {
-	file, err := ioutil.ReadFile(DATA_FILE)
-	var arr []int64
-	json.Unmarshal(file, &arr)
-	for index := 0; index < len(arr); index++ {
-		s1 := rand.NewSource(time.Now().UnixNano())
-		rng := rand.New(s1)
-		picture := rng.Intn(32)
+// floppinson sends a random floppa image to a list of users loaded from a JSON file
+func floppinson(bot *tgbotapi.BotAPI) error {
+	file, err := os.ReadFile(DATA_FILE)
+	if err != nil {
+		return err
+	}
 
-		id := arr[index]
-		photoBytes, err := ioutil.ReadFile("floppa/" + strconv.Itoa(picture) + ".jpg")
+	var arr []int64
+	err = json.Unmarshal(file, &arr)
+	if err != nil {
+		return err
+	}
+
+	// Iterates over every user in the list and sends them a random floppa image
+	for _, id := range arr {
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		pictureId := rng.Intn(32)
+
+		photoBytes, err := os.ReadFile(fmt.Sprintf("floppa/%d.jpg", pictureId))
 		if err != nil {
-			panic(err)
+			return err
 		}
+
 		photoFileBytes := tgbotapi.FileBytes{
 			Name:  "Flopik",
 			Bytes: photoBytes,
 		}
-		_, err = bot.Send(tgbotapi.NewPhoto(int64(id), photoFileBytes))
+
+		_, err = bot.Send(tgbotapi.NewPhoto(id, photoFileBytes))
+		if err != nil {
+			return err
+		}
 	}
-	if err != nil {
-		fmt.Println(err)
-	}
+
+	return nil
 }

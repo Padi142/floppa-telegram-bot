@@ -115,19 +115,10 @@ func main() {
 				}()
 			case "floppik":
 				go func() {
-					s1 := rand.NewSource(time.Now().UnixNano())
-					rng := rand.New(s1)
-					picture := rng.Intn(32)
-
-					photoBytes, err := ioutil.ReadFile("floppa/" + strconv.Itoa(picture) + ".jpg")
+					err = flopik(bot, update.FromChat().ID)
 					if err != nil {
-						panic(err)
+						log.Printf("flopik: failed to send flopik: %s", err)
 					}
-					photoFileBytes := tgbotapi.FileBytes{
-						Name:  "Flopik",
-						Bytes: photoBytes,
-					}
-					_, err = bot.Send(tgbotapi.NewPhoto(update.FromChat().ID, photoFileBytes))
 				}()
 			case "earrape":
 				go func() {
@@ -245,24 +236,29 @@ func floppinson(bot *tgbotapi.BotAPI) error {
 
 	// Iterates over every user in the list and sends them a random floppa image
 	for _, id := range arr {
-		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-		pictureId := rng.Intn(32)
-
-		photoBytes, err := os.ReadFile(fmt.Sprintf("floppa/%d.jpg", pictureId))
-		if err != nil {
-			return err
-		}
-
-		photoFileBytes := tgbotapi.FileBytes{
-			Name:  "Flopik",
-			Bytes: photoBytes,
-		}
-
-		_, err = bot.Send(tgbotapi.NewPhoto(id, photoFileBytes))
+		err = flopik(bot, id)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func flopik(bot *tgbotapi.BotAPI, id int64) error {
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	pictureId := rng.Intn(32)
+
+	photoBytes, err := os.ReadFile(fmt.Sprintf("floppa/%d.jpg", pictureId))
+	if err != nil {
+		return err
+	}
+
+	photoFileBytes := tgbotapi.FileBytes{
+		Name:  "Flopik",
+		Bytes: photoBytes,
+	}
+
+	_, err = bot.Send(tgbotapi.NewPhoto(id, photoFileBytes))
+	return err
 }

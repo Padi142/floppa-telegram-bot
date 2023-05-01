@@ -68,19 +68,13 @@ func main() {
 
 			switch update.Message.Command() {
 			case "subscribe":
-				file, err := os.ReadFile(DATA_FILE)
+				ids, err := getSubscriberIDs()
 				if err != nil {
-					log.Printf("subscribe: Failed to open data file: %s", err)
-				}
-
-				var arr []int64
-				err = json.Unmarshal(file, &arr)
-				if err != nil {
-					log.Printf("subscribe: Failed to unmarshal JSON file: %s", err)
+					log.Printf("subscribe: Failed to get subscriber ids: %s", err)
 				}
 
 				id := update.Message.Chat.ID
-				if !contains(arr, id) {
+				if !contains(ids, id) {
 					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "SUBSCRIBED TO FLOPPA PHOTOS!")
 					if _, err = bot.Send(msg); err != nil {
 						log.Printf("subscribe: Failed to send message: %s", err)
@@ -90,17 +84,10 @@ func main() {
 						log.Printf("subscribe: Failed to send message: %s", err)
 					}
 
-					arr = append(arr, id)
-					file, err = json.Marshal(arr)
+					err = addNewSubscriber(id)
 					if err != nil {
-						log.Printf("subscribe: Failed to marshal JSON file: %s", err)
+						log.Printf("subscribe: Failed to subscribe: %s", err)
 					}
-
-					err = os.WriteFile(DATA_FILE, file, 0644)
-					if err != nil {
-						fmt.Printf("subscribe: Failed to write JSON into data file: %s", err)
-					}
-					fmt.Println("saving id: " + strconv.Itoa(int(update.Message.Chat.ID)))
 				} else {
 					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "You can only subscribe once")
 					if _, err = bot.Send(msg); err != nil {
@@ -122,20 +109,12 @@ func main() {
 				}()
 			case "earrape":
 				go func() {
-					file, err := os.ReadFile(DATA_FILE)
+					ids, err := getSubscriberIDs()
 					if err != nil {
-						log.Printf("subscribe: Failed to open data file: %s", err)
+						log.Printf("earrape: Failed to get subscriber ids: %s", err)
 					}
 
-					var arr []int64
-					err = json.Unmarshal(file, &arr)
-					if err != nil {
-						log.Printf("subscribe: Failed to unmarshal JSON file: %s", err)
-					}
-
-					for index := 0; index < len(arr); index++ {
-
-						id := arr[index]
+					for _, id := range ids {
 						photoBytes, err := ioutil.ReadFile("video/earrape.mp4")
 						if err != nil {
 							fmt.Printf("earrape: Failed to open video file: %s", err)
@@ -152,24 +131,18 @@ func main() {
 				}()
 			case "ids":
 				go func() {
-					file, err := os.ReadFile(DATA_FILE)
+					ids, err := getSubscriberIDs()
 					if err != nil {
-						log.Printf("subscribe: Failed to open data file: %s", err)
+						log.Printf("ids: Failed to get subscriber ids: %s", err)
 					}
-					var arr []int
-					var IDs []string
-					err = json.Unmarshal(file, &arr)
-					if err != nil {
-						log.Printf("subscribe: Failed to unmarshal JSON file: %s", err)
+
+					var strarr []string
+					for _, id := range ids {
+						strarr = append(strarr, strconv.FormatInt(id, 10))
 					}
-					for _, i := range arr {
-						IDs = append(IDs, strconv.Itoa(i))
-					}
-					idstring := ""
-					for _, id := range IDs {
-						idstring = idstring + "," + id
-					}
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, idstring)
+					str := strings.Join(strarr, ",")
+
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, str)
 					if _, err = bot.Send(msg); err != nil {
 						log.Printf("ids: Failed to send message: %s", err)
 					}
@@ -178,14 +151,13 @@ func main() {
 				go func() {
 					message := strings.Replace(update.Message.Text, "/announce ", "", 644)
 
-					file, err := os.ReadFile(DATA_FILE)
+					ids, err := getSubscriberIDs()
 					if err != nil {
-						log.Printf("subscribe: Failed to open data file: %s", err)
+						log.Printf("announce: Failed to get subscriber ids: %s", err)
 					}
-					var arr []int64
-					err = json.Unmarshal(file, &arr)
-					for index := 0; index < len(arr); index++ {
-						msg := tgbotapi.NewMessage(arr[index], message)
+
+					for _, id := range ids {
+						msg := tgbotapi.NewMessage(id, message)
 						if _, err = bot.Send(msg); err != nil {
 							log.Printf("announce: Failed to send message: %s", err)
 						}
@@ -209,6 +181,37 @@ func main() {
 			}
 		}
 	}
+}
+
+func getSubscriberIDs() ([]int64, error) {
+	file, err := os.ReadFile(DATA_FILE)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []int64
+	if err = json.Unmarshal(file, &ids); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
+func addNewSubscriber(id int64) error {
+	ids, err := getSubscriberIDs()
+	if err != nil {
+		return err
+	}
+
+	ids = append(ids, id)
+	file, err := json.Marshal(ids)
+	if err != nil {
+		return err
+	}
+
+	log.Println("saving id: " + strconv.FormatInt(id, 10))
+
+	return os.WriteFile(DATA_FILE, file, 0644)
 }
 
 func contains(s []int64, str int64) bool {

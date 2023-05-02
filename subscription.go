@@ -37,3 +37,31 @@ func addNewSubscriber(id int64) error {
 
 	return os.WriteFile(DATA_FILE, file, 0644)
 }
+
+func removeSubscriber(idToRemove int64) error {
+	ids, err := getSubscriberIDs()
+	if err != nil {
+		return err
+	}
+
+	// Find the index of the subscriber with the specific ID
+	indexToRemove := -1
+	for i, id := range ids {
+		if id == idToRemove {
+			indexToRemove = i
+			break
+		}
+	}
+
+	// Remove the subscribe if found
+	if indexToRemove >= 0 {
+		ids = append(ids[:indexToRemove], ids[indexToRemove+1:]...)
+	}
+
+	file, err := json.Marshal(ids)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(DATA_FILE, file, 0644)
+}

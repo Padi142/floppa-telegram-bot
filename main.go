@@ -49,6 +49,24 @@ func main() {
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
+	commands := []tgbotapi.BotCommand{
+		{Command: "/subscribe", Description: "Subscribe to daily floppas"},
+		{Command: "/unsubscribe", Description: "Unsubscribe from daily floppas"},
+		{Command: "/flopik", Description: "Get floppa"},
+		{Command: "/flop", Description: "flop"},
+
+		{Command: "/floppinson", Description: "Manually send daily floppas to all subscribers"},
+		{Command: "/earrape", Description: "Send earrape floppa video to all subscribers"},
+		{Command: "/ids", Description: "Get all subscriber ids"},
+		{Command: "/announce", Description: "Send an announcement to all subscribers"},
+	}
+
+	config := tgbotapi.NewSetMyCommands(commands...)
+	_, err = bot.Request(config)
+	if err != nil {
+		log.Fatalf("Failed to register commands: %s", err)
+	}
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 

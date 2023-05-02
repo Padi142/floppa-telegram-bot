@@ -46,26 +46,24 @@ func (b *telegramBot) initCommands() error {
 	return err
 }
 
-func (b *telegramBot) chat(update tgbotapi.Update) {
+func (b *telegramBot) chat(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, strconv.FormatInt(update.Message.Chat.ID, 10))
-	if _, err := b.tgbot.Send(msg); err != nil {
-		log.Printf("chat: Failed to send message: %s", err)
-	}
+	_, err := b.tgbot.Send(msg)
+	return err
 }
 
-func (b *telegramBot) start(update tgbotapi.Update) {
+func (b *telegramBot) start(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Type /subscribe to get daily floppas!")
-	if _, err := b.tgbot.Send(msg); err != nil {
-		log.Printf("start: Failed to send message: %s", err)
-	}
+	_, err := b.tgbot.Send(msg)
+	return err
 }
 
-func (b *telegramBot) announce(update tgbotapi.Update) {
+func (b *telegramBot) announce(update tgbotapi.Update) error {
 	message := strings.Replace(update.Message.Text, "/announce ", "", 644)
 
 	ids, err := getSubscriberIDs()
 	if err != nil {
-		log.Printf("announce: Failed to get subscriber ids: %s", err)
+		return err
 	}
 
 	for _, id := range ids {
@@ -74,12 +72,13 @@ func (b *telegramBot) announce(update tgbotapi.Update) {
 			log.Printf("announce: Failed to send message: %s", err)
 		}
 	}
+	return nil
 }
 
-func (b *telegramBot) ids(update tgbotapi.Update) {
+func (b *telegramBot) ids(update tgbotapi.Update) error {
 	ids, err := getSubscriberIDs()
 	if err != nil {
-		log.Printf("ids: Failed to get subscriber ids: %s", err)
+		return err
 	}
 
 	var strarr []string
@@ -89,67 +88,64 @@ func (b *telegramBot) ids(update tgbotapi.Update) {
 	str := strings.Join(strarr, ",")
 
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, str)
-	if _, err = b.tgbot.Send(msg); err != nil {
-		log.Printf("ids: Failed to send message: %s", err)
-	}
+	_, err = b.tgbot.Send(msg)
+	return err
 }
 
-func (b *telegramBot) earrape() {
+func (b *telegramBot) earrape() error {
 	ids, err := getSubscriberIDs()
 	if err != nil {
-		log.Printf("earrape: Failed to get subscriber ids: %s", err)
+		return err
 	}
 
 	for _, id := range ids {
 		photoBytes, err := os.ReadFile("video/earrape.mp4")
 		if err != nil {
-			fmt.Printf("earrape: Failed to open video file: %s", err)
+			return err
 		}
+
 		photoFileBytes := tgbotapi.FileBytes{
 			Name:  "Flopik",
 			Bytes: photoBytes,
 		}
+
 		_, err = b.tgbot.Send(tgbotapi.NewVideo(int64(id), photoFileBytes))
 		if err != nil {
 			fmt.Printf("earrape: Failed to send video: %s", err)
 		}
 	}
+	return nil
 }
 
-func (b *telegramBot) subscribe(update tgbotapi.Update) {
+func (b *telegramBot) subscribe(update tgbotapi.Update) error {
 	ids, err := getSubscriberIDs()
 	if err != nil {
-		log.Printf("subscribe: Failed to get subscriber ids: %s", err)
+		return err
 	}
 
 	id := update.Message.Chat.ID
 	if !contains(ids, id) {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "SUBSCRIBED TO FLOPPA PHOTOS!")
 		if _, err = b.tgbot.Send(msg); err != nil {
-			log.Printf("subscribe: Failed to send message: %s", err)
+			return err
 		}
 		msg = tgbotapi.NewMessage(update.Message.Chat.ID, "FLOP FLOP!")
 		if _, err = b.tgbot.Send(msg); err != nil {
-			log.Printf("subscribe: Failed to send message: %s", err)
+			return err
 		}
 
-		err = addNewSubscriber(id)
-		if err != nil {
-			log.Printf("subscribe: Failed to subscribe: %s", err)
-		}
-	} else {
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "You can only subscribe once")
-		if _, err = b.tgbot.Send(msg); err != nil {
-			log.Printf("subscribe: Failed to send message: %s", err)
-		}
+		return addNewSubscriber(id)
 	}
+
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "You can only subscribe once")
+	_, err = b.tgbot.Send(msg)
+	return err
 }
 
-func (b *telegramBot) flop(update tgbotapi.Update) {
+func (b *telegramBot) flop(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "FLOP FLOP!")
-	if _, err := b.tgbot.Send(msg); err != nil {
-		log.Printf("flop: Failed to send message: %s", err)
-	}
+	_, err := b.tgbot.Send(msg)
+	return err
 }
 
 // floppinson sends a random floppa image to a list of users loaded from a JSON file
@@ -169,7 +165,7 @@ func (b *telegramBot) floppinson() error {
 	for _, id := range arr {
 		err = b.flopik(id)
 		if err != nil {
-			return err
+			log.Printf("floppik: Failed to send floppik: %s", err)
 		}
 	}
 

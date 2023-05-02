@@ -61,16 +61,20 @@ func main() {
 			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
 			if update.Message.Text == "flop" {
-				bot.flop(update)
+				if err = bot.flop(update); err != nil {
+					log.Printf("flop: Error: %s", err)
+				}
 			}
 
 			switch update.Message.Command() {
 			case "subscribe":
-				bot.subscribe(update)
+				if err = bot.subscribe(update); err != nil {
+					log.Printf("subscribe: Failed to subscribe: %s", err)
+				}
 			case "floppinson":
 				go func() {
 					if err = bot.floppinson(); err != nil {
-						log.Printf("Failed to send daily floppas: %s", err)
+						log.Printf("floppinson: Failed to send daily floppas: %s", err)
 					}
 				}()
 			case "floppik":
@@ -81,22 +85,34 @@ func main() {
 				}()
 			case "earrape":
 				go func() {
-					bot.earrape()
+					if err = bot.earrape(); err != nil {
+						log.Printf("earrape: Failed to send earrape: %s", err)
+					}
 				}()
 			case "ids":
 				go func() {
-					bot.ids(update)
+					if err = bot.ids(update); err != nil {
+						log.Printf("ids: Failed to get subsriber ids: %s", err)
+					}
 				}()
 			case "announce":
 				go func() {
-					bot.announce(update)
+					if err = bot.announce(update); err != nil {
+						log.Printf("announce: Failed to send announcement to subscribers: %s", err)
+					}
 				}()
 			case "flop":
-				bot.flop(update)
+				if err = bot.flop(update); err != nil {
+					log.Printf("flop: Error: %s", err)
+				}
 			case "start":
-				bot.start(update)
+				if err = bot.start(update); err != nil {
+					log.Printf("start: Error: %s", err)
+				}
 			case "chat":
-				bot.chat(update)
+				if err = bot.chat(update); err != nil {
+					log.Printf("chat: Error: %s", err)
+				}
 			default:
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Co")
 				if _, err = bot.tgbot.Send(msg); err != nil {

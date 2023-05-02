@@ -223,12 +223,14 @@ func initCommands(bot *tgbotapi.BotAPI) error {
 		{Command: "/flop", Description: "flop"},
 		{Command: "/chat", Description: "Returns chat id"},
 	}
+
 	commandsAdmin := []tgbotapi.BotCommand{
 		{Command: "/floppinson", Description: "Manually send daily floppas to all subscribers"},
 		{Command: "/earrape", Description: "Send earrape floppa video to all subscribers"},
 		{Command: "/ids", Description: "Get all subscriber ids"},
 		{Command: "/announce", Description: "Send an announcement to all subscribers"},
 	}
+	commandsAdmin = append(commandsAdmin, commandsEveryone...)
 
 	scopeEveryone := tgbotapi.NewBotCommandScopeDefault()
 	adminChatId, err := strconv.ParseInt(os.Getenv("ADMIN_CHAT_ID"), 10, 64)

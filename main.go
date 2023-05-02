@@ -49,20 +49,7 @@ func main() {
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
-	commands := []tgbotapi.BotCommand{
-		{Command: "/subscribe", Description: "Subscribe to daily floppas"},
-		{Command: "/unsubscribe", Description: "Unsubscribe from daily floppas"},
-		{Command: "/flopik", Description: "Get floppa"},
-		{Command: "/flop", Description: "flop"},
-
-		{Command: "/floppinson", Description: "Manually send daily floppas to all subscribers"},
-		{Command: "/earrape", Description: "Send earrape floppa video to all subscribers"},
-		{Command: "/ids", Description: "Get all subscriber ids"},
-		{Command: "/announce", Description: "Send an announcement to all subscribers"},
-	}
-
-	config := tgbotapi.NewSetMyCommands(commands...)
-	_, err = bot.Request(config)
+	err = initCommands(bot)
 	if err != nil {
 		log.Fatalf("Failed to register commands: %s", err)
 	}
@@ -213,6 +200,11 @@ func main() {
 				if _, err = bot.Send(msg); err != nil {
 					log.Printf("start: Failed to send message: %s", err)
 				}
+			case "chat":
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, strconv.FormatInt(update.Message.Chat.ID, 10))
+				if _, err = bot.Send(msg); err != nil {
+					log.Printf("chat: Failed to send message: %s", err)
+				}
 			default:
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Co")
 				if _, err = bot.Send(msg); err != nil {
@@ -221,6 +213,39 @@ func main() {
 			}
 		}
 	}
+}
+
+func initCommands(bot *tgbotapi.BotAPI) error {
+	commandsEveryone := []tgbotapi.BotCommand{
+		{Command: "/subscribe", Description: "Subscribe to daily floppas"},
+		{Command: "/unsubscribe", Description: "Unsubscribe from daily floppas"},
+		{Command: "/floppik", Description: "Get floppa"},
+		{Command: "/flop", Description: "flop"},
+		{Command: "/chat", Description: "Returns chat id"},
+	}
+	commandsAdmin := []tgbotapi.BotCommand{
+		{Command: "/floppinson", Description: "Manually send daily floppas to all subscribers"},
+		{Command: "/earrape", Description: "Send earrape floppa video to all subscribers"},
+		{Command: "/ids", Description: "Get all subscriber ids"},
+		{Command: "/announce", Description: "Send an announcement to all subscribers"},
+	}
+
+	scopeEveryone := tgbotapi.NewBotCommandScopeDefault()
+	adminChatId, err := strconv.ParseInt(os.Getenv("ADMIN_CHAT_ID"), 10, 64)
+	if err != nil {
+		return err
+	}
+	scopeAdmin := tgbotapi.NewBotCommandScopeChat(adminChatId)
+
+	config := tgbotapi.NewSetMyCommandsWithScope(scopeEveryone, commandsEveryone...)
+	_, err = bot.Request(config)
+	if err != nil {
+		return err
+	}
+
+	config = tgbotapi.NewSetMyCommandsWithScope(scopeAdmin, commandsAdmin...)
+	_, err = bot.Request(config)
+	return err
 }
 
 func contains(s []int64, str int64) bool {

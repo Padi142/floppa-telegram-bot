@@ -98,29 +98,6 @@ func main() {
 						log.Printf("subscribe: Failed to send message: %s", err)
 					}
 				}
-			case "unsubscribe":
-				ids, err := getSubscriberIDs()
-				if err != nil {
-					log.Printf("unsubscribe: Failed to get subscriber ids: %s", err)
-				}
-
-				id := update.Message.Chat.ID
-				if contains(ids, id) {
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "UNSUBSCRIBED FROM FLOPPA PHOTOS!")
-					if _, err = bot.Send(msg); err != nil {
-						log.Printf("unsubscribe: Failed to send message: %s", err)
-					}
-
-					err = removeSubscriber(id)
-					if err != nil {
-						log.Printf("unsubscribe: Failed to subscribe: %s", err)
-					}
-				} else {
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "You are not subscribed")
-					if _, err = bot.Send(msg); err != nil {
-						log.Printf("unsubscribe: Failed to send message: %s", err)
-					}
-				}
 			case "floppinson":
 				go func() {
 					if err = floppinson(bot); err != nil {
@@ -218,7 +195,6 @@ func main() {
 func initCommands(bot *tgbotapi.BotAPI) error {
 	commandsEveryone := []tgbotapi.BotCommand{
 		{Command: "/subscribe", Description: "Subscribe to daily floppas"},
-		{Command: "/unsubscribe", Description: "Unsubscribe from daily floppas"},
 		{Command: "/floppik", Description: "Get floppa"},
 		{Command: "/flop", Description: "flop"},
 		{Command: "/chat", Description: "Returns chat id"},

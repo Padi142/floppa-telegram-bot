@@ -93,6 +93,29 @@ func main() {
 						log.Printf("subscribe: Failed to send message: %s", err)
 					}
 				}
+			case "unsubscribe":
+				ids, err := getSubscriberIDs()
+				if err != nil {
+					log.Printf("unsubscribe: Failed to get subscriber ids: %s", err)
+				}
+
+				id := update.Message.Chat.ID
+				if contains(ids, id) {
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "UNSUBSCRIBED FROM FLOPPA PHOTOS!")
+					if _, err = bot.Send(msg); err != nil {
+						log.Printf("unsubscribe: Failed to send message: %s", err)
+					}
+
+					err = removeSubscriber(id)
+					if err != nil {
+						log.Printf("unsubscribe: Failed to subscribe: %s", err)
+					}
+				} else {
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "You are not subscribed")
+					if _, err = bot.Send(msg); err != nil {
+						log.Printf("unsubscribe: Failed to send message: %s", err)
+					}
+				}
 			case "floppinson":
 				go func() {
 					if err = floppinson(bot); err != nil {
@@ -180,37 +203,6 @@ func main() {
 			}
 		}
 	}
-}
-
-func getSubscriberIDs() ([]int64, error) {
-	file, err := os.ReadFile(DATA_FILE)
-	if err != nil {
-		return nil, err
-	}
-
-	var ids []int64
-	if err = json.Unmarshal(file, &ids); err != nil {
-		return nil, err
-	}
-
-	return ids, nil
-}
-
-func addNewSubscriber(id int64) error {
-	ids, err := getSubscriberIDs()
-	if err != nil {
-		return err
-	}
-
-	ids = append(ids, id)
-	file, err := json.Marshal(ids)
-	if err != nil {
-		return err
-	}
-
-	log.Println("saving id: " + strconv.FormatInt(id, 10))
-
-	return os.WriteFile(DATA_FILE, file, 0644)
 }
 
 func contains(s []int64, str int64) bool {

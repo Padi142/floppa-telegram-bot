@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"log"
+	"os"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 	"github.com/procyon-projects/chrono"
-	"log"
-	"os"
 )
 
 type telegramBot struct {
@@ -118,10 +119,11 @@ func main() {
 					log.Printf("chat: Error: %s", err)
 				}
 			default:
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Co")
-				if _, err = bot.tgbot.Send(msg); err != nil {
-					log.Printf("default: Failed to send message: %s", err)
-				}
+				break;
+				// msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Co")
+				// if _, err = bot.tgbot.Send(msg); err != nil {
+				// 	log.Printf("default: Failed to send message: %s", err)
+				// }
 			}
 		}
 	}

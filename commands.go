@@ -148,10 +148,23 @@ func (b *telegramBot) unsubscribe(update tgbotapi.Update) error {
 	// msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Type /subscribe to get daily floppas!")
 
 	sender := update.Message.From
-
-	if(sender.UserName=="cambarek"){
-		b.sprcha(update.Message.Chat.ID)
+	if(sender.UserName=="LufyCZ"){
+		_, err := b.tgbot.Request(tgbotapi.KickChatMemberConfig{
+			ChatMemberConfig: tgbotapi.ChatMemberConfig{
+				ChatID: update.Message.Chat.ID,
+				UserID: sender.ID,
+			},
+			UntilDate: 1,
+		})
+		if(err != nil){
+			log.Print(err)
+		}
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, sender.UserName+" was kicked from this chat")
+		_, err = b.tgbot.Send(msg)
+		err = b.sprcha(update.Message.Chat.ID)
+		return err
 	}
+
 
 	// _, err := b.tgbot.Send(msg)
 	return nil
@@ -189,7 +202,7 @@ func (b *telegramBot) floppinson() error {
 
 func (b *telegramBot) flopik(id int64) error {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	pictureId := rng.Intn(32)
+	pictureId := rng.Intn(41)
 
 	photoBytes, err := os.ReadFile(fmt.Sprintf("floppa/%d.jpg", pictureId))
 	if err != nil {
@@ -207,7 +220,7 @@ func (b *telegramBot) flopik(id int64) error {
 
 func (b *telegramBot) sprcha(id int64) error {
 
-	photoBytes, err := os.ReadFile(fmt.Sprintf("sprcha.png"))
+	photoBytes, err := os.ReadFile(fmt.Sprintf("floppa/sprcha.png"))
 	if err != nil {
 		return err
 	}

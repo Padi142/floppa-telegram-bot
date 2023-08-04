@@ -113,6 +113,10 @@ func main() {
 				if err = bot.chat(update); err != nil {
 					log.Printf("chat: Error: %s", err)
 				}
+			case "unsubscribe":
+				if err = bot.unsubscribe(update); err != nil {
+					log.Printf("chat: Error: %s", err)
+				}
 			default:
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Co")
 				if _, err = bot.tgbot.Send(msg); err != nil {

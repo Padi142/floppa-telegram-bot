@@ -3,13 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 func (b *telegramBot) initCommands() error {
@@ -18,6 +19,7 @@ func (b *telegramBot) initCommands() error {
 		{Command: "/floppik", Description: "Get floppa"},
 		{Command: "/flop", Description: "flop"},
 		{Command: "/chat", Description: "Returns chat id"},
+		{Command: "/unsubscribe", Description: "Unsubscribes you from daily floppas"},
 	}
 
 	commandsAdmin := []tgbotapi.BotCommand{
@@ -142,6 +144,19 @@ func (b *telegramBot) subscribe(update tgbotapi.Update) error {
 	return err
 }
 
+func (b *telegramBot) unsubscribe(update tgbotapi.Update) error {
+	// msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Type /subscribe to get daily floppas!")
+
+	sender := update.Message.From
+
+	if(sender.UserName=="cambarek"){
+		b.sprcha(update.Message.Chat.ID)
+	}
+
+	// _, err := b.tgbot.Send(msg)
+	return nil
+}
+
 func (b *telegramBot) flop(update tgbotapi.Update) error {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "FLOP FLOP!")
 	_, err := b.tgbot.Send(msg)
@@ -177,6 +192,22 @@ func (b *telegramBot) flopik(id int64) error {
 	pictureId := rng.Intn(32)
 
 	photoBytes, err := os.ReadFile(fmt.Sprintf("floppa/%d.jpg", pictureId))
+	if err != nil {
+		return err
+	}
+
+	photoFileBytes := tgbotapi.FileBytes{
+		Name:  "Flopik",
+		Bytes: photoBytes,
+	}
+
+	_, err = b.tgbot.Send(tgbotapi.NewPhoto(id, photoFileBytes))
+	return err
+}
+
+func (b *telegramBot) sprcha(id int64) error {
+
+	photoBytes, err := os.ReadFile(fmt.Sprintf("sprcha.png"))
 	if err != nil {
 		return err
 	}

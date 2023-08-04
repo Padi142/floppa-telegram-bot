@@ -161,13 +161,12 @@ func (b *telegramBot) unsubscribe(update tgbotapi.Update) error {
 		}
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, sender.UserName+" was kicked from this chat")
 		_, err = b.tgbot.Send(msg)
-		err = b.sprcha(update.Message.Chat.ID)
-		return err
 	}
 
+	 err := b.sprcha(update.Message.Chat.ID)
 
 	// _, err := b.tgbot.Send(msg)
-	return nil
+	return err
 }
 
 func (b *telegramBot) flop(update tgbotapi.Update) error {

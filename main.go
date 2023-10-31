@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
@@ -73,11 +74,13 @@ func main() {
 					log.Printf("subscribe: Failed to subscribe: %s", err)
 				}
 			case "floppinson":
-				go func() {
-					if err = bot.floppinson(); err != nil {
-						log.Printf("floppinson: Failed to send daily floppas: %s", err)
-					}
-				}()
+				if isAdmin(update.SentFrom().ID) {
+					go func() {
+						if err = bot.floppinson(); err != nil {
+							log.Printf("floppinson: Failed to send daily floppas: %s", err)
+						}
+					}()
+				}
 			case "floppik":
 				go func() {
 					if err = bot.flopik(update.FromChat().ID); err != nil {
@@ -85,23 +88,29 @@ func main() {
 					}
 				}()
 			case "earrape":
-				go func() {
-					if err = bot.earrape(); err != nil {
-						log.Printf("earrape: Failed to send earrape: %s", err)
-					}
-				}()
+				if isAdmin(update.SentFrom().ID) {
+					go func() {
+						if err = bot.earrape(); err != nil {
+							log.Printf("earrape: Failed to send earrape: %s", err)
+						}
+					}()
+				}
 			case "ids":
-				go func() {
-					if err = bot.ids(update); err != nil {
-						log.Printf("ids: Failed to get subsriber ids: %s", err)
-					}
-				}()
+				if isAdmin(update.SentFrom().ID) {
+					go func() {
+						if err = bot.ids(update); err != nil {
+							log.Printf("ids: Failed to get subsriber ids: %s", err)
+						}
+					}()
+				}
 			case "announce":
-				go func() {
-					if err = bot.announce(update); err != nil {
-						log.Printf("announce: Failed to send announcement to subscribers: %s", err)
-					}
-				}()
+				if isAdmin(update.SentFrom().ID) {
+					go func() {
+						if err = bot.announce(update); err != nil {
+							log.Printf("announce: Failed to send announcement to subscribers: %s", err)
+						}
+					}()
+				}
 			case "flop":
 				if err = bot.flop(update); err != nil {
 					log.Printf("flop: Error: %s", err)
@@ -119,7 +128,7 @@ func main() {
 					log.Printf("chat: Error: %s", err)
 				}
 			default:
-				break;
+				break
 				// msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Co")
 				// if _, err = bot.tgbot.Send(msg); err != nil {
 				// 	log.Printf("default: Failed to send message: %s", err)
@@ -136,5 +145,12 @@ func contains(s []int64, str int64) bool {
 		}
 	}
 
+	return false
+}
+
+func isAdmin(id int64) bool {
+	if strconv.FormatInt(id, 10) == os.Getenv("ADMIN_CHAT_ID") {
+		return true
+	}
 	return false
 }
